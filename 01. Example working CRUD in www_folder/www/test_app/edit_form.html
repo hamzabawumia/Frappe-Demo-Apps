@@ -1,0 +1,34 @@
+<!-- edit_form.html - A form to edit an existing books. -->
+
+<!DOCTYPE html>
+<html>
+
+<body>
+{% if todo %}
+  <!-- Display the form if 'todo' object exists -->
+  <form action="/test_app/edit/{{ todo.name }}" method="post">
+  
+    <!-- CSRF Token input field -->
+    <input type="hidden" name="csrf_token" value="{{ frappe.session.csrf_token }}">
+
+    <input type="hidden" name="name" value="{{ todo.name }}">
+    
+    <label for="title">Title:</label>
+    <input type="text" id="title" name="title" value="{{ todo.title }}" required>
+    
+    <label for="description">Description:</label>
+    <textarea id="description" name="description">{{ todo.description }}</textarea>
+    
+    <button type="submit">Update Todo</button>
+  </form>
+  <a href="/test_app/list">Back to List</a>
+
+{% else %}
+  <!-- Display a message if 'todo' object is not found -->
+  <p>The requested Todo item could not be found.</p>
+  <a href="/test_app/list">Back to List</a>
+{% endif %}
+
+</body>
+
+</html>

@@ -1,0 +1,25 @@
+<!-- create_form.html - A form to create a new book. -->
+
+<html>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Add Todo</title>
+</head>
+<body>
+  <h1>Add New Todo</h1>
+  <form action="/test_app/create" method="post">
+  
+    <!-- CSRF Token input field -->
+    <input type="hidden" name="csrf_token" value="{{ frappe.session.csrf_token }}">
+
+    <label for="title">Title:</label>
+    <input type="text" id="title" name="title" required>
+    <label for="description">Description:</label>
+    <textarea id="description" name="description"></textarea>
+
+    <button type="submit">Add Todo</button>
+  </form>
+  <a href="/test_app/list">Back to List</a>
+</body>
+</html>

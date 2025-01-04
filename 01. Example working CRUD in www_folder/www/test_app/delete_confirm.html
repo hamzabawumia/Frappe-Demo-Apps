@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Delete Todo</title>
+</head>
+<body>
+  {% if todo %}
+  <!-- Display the confirmation form if 'todo' object exists -->
+  <p>Are you sure you want to delete the Todo item titled "{{ todo.title }}"?</p>
+  <form action="/test_app/delete/{{ todo.name }}" method="post">
+      <!-- CSRF Token input field -->
+      <input type="hidden" name="csrf_token" value="{{ frappe.session.csrf_token }}">
+
+    <input type="hidden" id="todo_id" name="todo_id" value="{{ todo.name }}">
+    <button type="submit">Yes, Delete</button>
+  </form>
+  <a href="/test_app/list">No, Go Back</a>
+
+{% else %}
+  <!-- Display a message if 'todo' object is not found -->
+  <p>The requested Todo item could not be found.</p>
+  <a href="/test_app/list">Back to List</a>
+{% endif %}
+</body>
+</html>

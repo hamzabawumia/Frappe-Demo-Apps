@@ -1,0 +1,15 @@
+<!-- list.html - A page to view the list of books. -->
+
+
+  <h1>Todo List</h1>
+  <ul>
+    {% for todo in todos %}
+      <li>
+        <a href="/todo/{{ todo.name }}">{{ todo.title }}</a> - {{ todo.status }}
+        <a href="/test_app/edit_form/{{ todo.name }}">Edit</a>
+        <a href="/test_app/delete_confirm/{{ todo.name }}">Delete</a>
+      </li>
+    {% endfor %}
+  </ul>
+  <a href="/test_app/create_form">Add New Todo</a>
+
