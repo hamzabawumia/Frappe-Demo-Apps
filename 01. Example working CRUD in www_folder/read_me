@@ -1,0 +1,12 @@
+This is specifically for portal pages only
+
+    # it was a bit confusing at first, 
+    # due to frappe's file based routing for portal pages, frappe looks for a file in your www folder
+    # hence when you go to a url, like todo_app/list it will look for list.html in your www folder
+
+    # Additionally when you pass a parameter in your url, it still routes to a file.
+    # So even your detail pages, form pages, etc should be html files with their context coming from the corresponding python file
+    # (list.html, list.py)
+    # when you pass a parameter, the context will automatically get the passed parameters and return whatever you return to the html page.
+
+Look in the hooks.py file for the url configurations and read the comments in that file.
