@@ -17,20 +17,18 @@ website_route_rules = [
     {"from_route": "/test_app/xyz", "to_route": "test_app/list"},
     # the from_route can be anything you want e.g. /xyz but the "to_route" should point to an html file in your www folder
 
+    {"from_route": "/test_app/create", "to_route": "test_app/create"},
+
     {"from_route": "/test_app/edit_form/<name>", "to_route": "test_app/edit_form"}, # displays the edit form with the details of the object
     {"from_route": "/test_app/edit/<name>", "to_route": "test_app/edit"}, # Route to the code that actually updates the record
-
-    {"from_route": "/test_app/add", "to_route": "test_app/add"},
-
-
 
     {"from_route": "/test_app/delete_confirm/<name>", "to_route": "test_app/delete_confirm"}, # displays the confirmation page with the object details
     {"from_route": "/test_app/delete/<name>", "to_route": "test_app/delete"},  # Route to the code that actually updates the record
 
 
-    {"from_route": "/test_app/create", "to_route": "test_app/create.create"}, 
+    {"from_route": "/test_app/list", "to_route": "test_app/list"}, 
 
-    # due to frappe'w file based routing, the "to_route" should always point to an html files in the www folder
+    # due to frappe's file based routing, the "to_route" should always point to an html files in the www folder
     # but the from route can be configured any way you want.
 
 ]
