@@ -16,3 +16,7 @@ e.g. route in my html is:
 
 Since i am using the frappe inbuilt way to access custom api methods - it means you don't have to configure
 url in the hooks.py
+
+
+Access the app by browsing to the url: http://Your_Domain:8000/books
+This is because in the www folder i created the base html file called books (File based routing in frappe)
