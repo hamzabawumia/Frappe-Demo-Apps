@@ -51,5 +51,6 @@ url in the hooks.py
 
 Access the app in the desk by browsing to the url: http://Your_Domain:8000/app/books
 
+ENSURE TO create that api folder and put in your CRUD methods.
 
 Now everything will work just like we have it in the portal htmx CRUD.
