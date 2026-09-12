@@ -1,0 +1,1380 @@
+<style>
+    .todo-page {
+        max-width: 1100px;
+        margin: 40px auto;
+        padding: 0 20px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #1f2937;
+    }
+
+    .todo-header {
+        margin-bottom: 30px;
+    }
+
+    .todo-header h1 {
+        margin: 0 0 8px;
+        font-size: 30px;
+    }
+
+    .todo-header p {
+        margin: 0;
+        color: #6b7280;
+    }
+
+    .todo-table-wrapper {
+        overflow-x: auto;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: white;
+    }
+
+    .todo-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .todo-table th {
+        text-align: left;
+        padding: 14px 16px;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 13px;
+        font-weight: 600;
+        color: #4b5563;
+    }
+
+    .todo-table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+    }
+
+    .todo-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .todo-description {
+        font-weight: 500;
+    }
+
+    .todo-name {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-top: 4px;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: #eef2ff;
+        color: #4338ca;
+    }
+
+    .priority-badge {
+        font-size: 13px;
+    }
+
+    .todo-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn {
+        border: none;
+        border-radius: 6px;
+        padding: 7px 12px;
+        cursor: pointer;
+        font-size: 13px;
+    }
+
+    .btn-edit {
+        background: #f3f4f6;
+        color: #374151;
+    }
+
+    .btn-edit:hover {
+        background: #e5e7eb;
+    }
+
+    .btn-delete {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .btn-delete:hover {
+        background: #fecaca;
+    }
+
+    .loading,
+    .empty {
+        padding: 40px;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    .error {
+        margin-bottom: 20px;
+        padding: 14px 16px;
+        border-radius: 8px;
+        background: #fee2e2;
+        color: #991b1b;
+        display: none;
+    }
+
+    /* =========================
+       MODAL
+    ========================= */
+
+    .todo-modal {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .todo-modal.show {
+        display: flex;
+    }
+
+    .modal-content {
+        width: 100%;
+        max-width: 520px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+    }
+
+    .modal-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 20px;
+    }
+
+    .modal-close {
+        border: none;
+        background: transparent;
+        font-size: 24px;
+        color: #6b7280;
+        cursor: pointer;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 18px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .form-control {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        font-size: 14px;
+        background: white;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .modal-footer {
+        padding: 15px 20px;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .btn-secondary {
+        background: #f3f4f6;
+        color: #374151;
+    }
+
+    .btn-primary {
+        background: #4f46e5;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #4338ca;
+    }
+
+    .btn-danger {
+        background: #dc2626;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #b91c1c;
+    }
+
+    .modal-message {
+        color: #4b5563;
+        line-height: 1.5;
+    }
+</style>
+
+
+<div class="todo-page">
+
+    <div class="todo-header">
+
+        <h1>My ToDos</h1>
+
+        <p>
+            Manage your Frappe ToDos
+        </p>
+
+    </div>
+
+
+    <div id="todo-error" class="error"></div>
+
+
+    <div id="todo-loading" class="loading">
+        Loading ToDos...
+    </div>
+
+
+    <div id="todo-empty" class="empty" style="display:none;">
+        No ToDos found.
+    </div>
+
+
+    <div
+        id="todo-table-wrapper"
+        class="todo-table-wrapper"
+        style="display:none;"
+    >
+
+        <table class="todo-table">
+
+            <thead>
+
+                <tr>
+
+                    <th>Description</th>
+
+                    <th>Status</th>
+
+                    <th>Priority</th>
+
+                    <th>Due Date</th>
+
+                    <th>Allocated To</th>
+
+                    <th id="actions-header">
+                        Actions
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody id="todo-table-body"></tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     UPDATE MODAL
+===================================================== -->
+
+<div id="update-modal" class="todo-modal">
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+
+            <h2>Edit ToDo</h2>
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeUpdateModal()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+            <input
+                type="hidden"
+                id="edit-todo-name"
+            >
+
+
+            <div class="form-group">
+
+                <label for="edit-description">
+                    Description
+                </label>
+
+                <textarea
+                    id="edit-description"
+                    class="form-control"
+                ></textarea>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="edit-status">
+                    Status
+                </label>
+
+                <select
+                    id="edit-status"
+                    class="form-control"
+                >
+
+                    <option value="Open">
+                        Open
+                    </option>
+
+                    <option value="Closed">
+                        Closed
+                    </option>
+
+                    <option value="Cancelled">
+                        Cancelled
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="edit-priority">
+                    Priority
+                </label>
+
+                <select
+                    id="edit-priority"
+                    class="form-control"
+                >
+
+                    <option value="Low">
+                        Low
+                    </option>
+
+                    <option value="Medium">
+                        Medium
+                    </option>
+
+                    <option value="High">
+                        High
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="edit-date">
+                    Due Date
+                </label>
+
+                <input
+                    type="date"
+                    id="edit-date"
+                    class="form-control"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="modal-footer">
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="closeUpdateModal()"
+            >
+                Cancel
+            </button>
+
+
+            <button
+                type="button"
+                id="save-update-button"
+                class="btn btn-primary"
+                onclick="saveTodo()"
+            >
+                Save Changes
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     DELETE CONFIRMATION MODAL
+===================================================== -->
+
+<div id="delete-modal" class="todo-modal">
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+
+            <h2>Delete ToDo</h2>
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeDeleteModal()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+            <input
+                type="hidden"
+                id="delete-todo-name"
+            >
+
+
+            <p class="modal-message">
+
+                Are you sure you want to delete this ToDo?
+
+                <br>
+                <br>
+
+                <strong id="delete-todo-description"></strong>
+
+                <br>
+                <br>
+
+                This action cannot be undone.
+
+            </p>
+
+        </div>
+
+
+        <div class="modal-footer">
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="closeDeleteModal()"
+            >
+                Cancel
+            </button>
+
+
+            <button
+                type="button"
+                id="confirm-delete-button"
+                class="btn btn-danger"
+                onclick="deleteTodo()"
+            >
+                Delete
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   PERMISSION CHECKING
+========================================================= */
+
+/*
+    IMPORTANT:
+
+    We do NOT use:
+
+        frappe.perm.has_perm()
+
+    because frappe.perm is not available in this
+    Web Page environment.
+
+    Instead, we ask the Frappe backend to check
+    permissions for each individual ToDo.
+*/
+
+
+async function getTodoPermissions(name) {
+
+    const response = await fetch(
+
+        "/api/method/your_app.api.get_todo_permissions" +
+        "?name=" +
+        encodeURIComponent(name),
+
+        {
+            method: "GET",
+
+            headers: {
+                "Accept": "application/json"
+            }
+        }
+
+    );
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            `Permission check failed: HTTP ${response.status}`
+        );
+
+    }
+
+
+    const result =
+        await response.json();
+
+
+    /*
+        Frappe wraps the returned Python dictionary
+        inside "message".
+    */
+
+    return result.message || {
+        write: false,
+        delete: false
+    };
+
+}
+
+
+/* =========================================================
+   LOAD TODOS
+========================================================= */
+
+async function loadTodos() {
+
+    const loading =
+        document.getElementById(
+            "todo-loading"
+        );
+
+    const error =
+        document.getElementById(
+            "todo-error"
+        );
+
+    const empty =
+        document.getElementById(
+            "todo-empty"
+        );
+
+    const wrapper =
+        document.getElementById(
+            "todo-table-wrapper"
+        );
+
+    const tbody =
+        document.getElementById(
+            "todo-table-body"
+        );
+
+    const actionsHeader =
+        document.getElementById(
+            "actions-header"
+        );
+
+
+    loading.style.display = "block";
+
+    error.style.display = "none";
+
+    empty.style.display = "none";
+
+    wrapper.style.display = "none";
+
+
+    try {
+
+        const fields = [
+            "name",
+            "description",
+            "status",
+            "priority",
+            "date",
+            "allocated_to"
+        ];
+
+
+        const url =
+            "/api/resource/ToDo" +
+            "?fields=" +
+            encodeURIComponent(
+                JSON.stringify(fields)
+            ) +
+            "&limit_page_length=100";
+
+
+        const response =
+            await fetch(
+
+                url,
+
+                {
+                    method: "GET",
+
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                `HTTP ${response.status}: ${response.statusText}`
+            );
+
+        }
+
+
+        const result =
+            await response.json();
+
+
+        const todos =
+            result.data || [];
+
+
+        loading.style.display = "none";
+
+
+        if (todos.length === 0) {
+
+            empty.style.display = "block";
+
+            actionsHeader.style.display =
+                "none";
+
+            return;
+
+        }
+
+
+        tbody.innerHTML = "";
+
+
+        /*
+            Check permissions for every document.
+
+            This is important because permissions can
+            depend on the particular document.
+        */
+
+        const todosWithPermissions =
+            await Promise.all(
+
+                todos.map(async todo => {
+
+                    try {
+
+                        const permissions =
+                            await getTodoPermissions(
+                                todo.name
+                            );
+
+                        return {
+                            ...todo,
+                            permissions
+                        };
+
+                    } catch (err) {
+
+                        console.error(
+                            "Permission check failed for",
+                            todo.name,
+                            err
+                        );
+
+                        return {
+                            ...todo,
+                            permissions: {
+                                write: false,
+                                delete: false
+                            }
+                        };
+
+                    }
+
+                })
+
+            );
+
+
+        /*
+            Determine whether at least one row
+            has an action available.
+        */
+
+        const hasAnyActions =
+            todosWithPermissions.some(todo =>
+
+                todo.permissions.write ||
+                todo.permissions.delete
+
+            );
+
+
+        actionsHeader.style.display =
+            hasAnyActions
+                ? "table-cell"
+                : "none";
+
+
+        /*
+            Build rows.
+        */
+
+        todosWithPermissions.forEach(todo => {
+
+            const row =
+                document.createElement("tr");
+
+
+            const canEdit =
+                todo.permissions.write === true;
+
+
+            const canDelete =
+                todo.permissions.delete === true;
+
+
+            /*
+                Build action buttons only when
+                the current user has permission.
+            */
+
+            let actionsHtml = "";
+
+
+            if (canEdit) {
+
+                actionsHtml += `
+
+                    <button
+                        type="button"
+                        class="btn btn-edit"
+                        onclick='openUpdateModal(${JSON.stringify(todo)})'
+                    >
+                        Edit
+                    </button>
+
+                `;
+
+            }
+
+
+            if (canDelete) {
+
+                actionsHtml += `
+
+                    <button
+                        type="button"
+                        class="btn btn-delete"
+                        onclick='openDeleteModal(${JSON.stringify(todo)})'
+                    >
+                        Delete
+                    </button>
+
+                `;
+
+            }
+
+
+            let actionsCell = "";
+
+
+            if (hasAnyActions) {
+
+                actionsCell = `
+
+                    <td
+                        style="${!canEdit && !canDelete
+                            ? "display:none;"
+                            : ""}"
+                    >
+
+                        <div class="todo-actions">
+
+                            ${actionsHtml}
+
+                        </div>
+
+                    </td>
+
+                `;
+
+            }
+
+
+            row.innerHTML = `
+
+                <td>
+
+                    <div class="todo-description">
+
+                        ${escapeHtml(
+                            todo.description ||
+                            "No description"
+                        )}
+
+                    </div>
+
+
+                    <div class="todo-name">
+
+                        ${escapeHtml(
+                            todo.name
+                        )}
+
+                    </div>
+
+                </td>
+
+
+                <td>
+
+                    <span class="status-badge">
+
+                        ${escapeHtml(
+                            todo.status || ""
+                        )}
+
+                    </span>
+
+                </td>
+
+
+                <td>
+
+                    <span class="priority-badge">
+
+                        ${escapeHtml(
+                            todo.priority || ""
+                        )}
+
+                    </span>
+
+                </td>
+
+
+                <td>
+
+                    ${escapeHtml(
+                        todo.date || ""
+                    )}
+
+                </td>
+
+
+                <td>
+
+                    ${escapeHtml(
+                        todo.allocated_to || ""
+                    )}
+
+                </td>
+
+
+                ${actionsCell}
+
+            `;
+
+
+            tbody.appendChild(row);
+
+        });
+
+
+        wrapper.style.display = "block";
+
+
+    } catch (err) {
+
+        console.error(err);
+
+
+        loading.style.display = "none";
+
+        error.style.display = "block";
+
+        error.textContent =
+            "Unable to load ToDos: " +
+            err.message;
+
+    }
+
+}
+
+
+/* =========================================================
+   OPEN UPDATE MODAL
+========================================================= */
+
+function openUpdateModal(todo) {
+
+    if (
+        !todo.permissions ||
+        !todo.permissions.write
+    ) {
+
+        return;
+
+    }
+
+
+    document.getElementById(
+        "edit-todo-name"
+    ).value =
+        todo.name || "";
+
+
+    document.getElementById(
+        "edit-description"
+    ).value =
+        todo.description || "";
+
+
+    document.getElementById(
+        "edit-status"
+    ).value =
+        todo.status || "Open";
+
+
+    document.getElementById(
+        "edit-priority"
+    ).value =
+        todo.priority || "Medium";
+
+
+    document.getElementById(
+        "edit-date"
+    ).value =
+        todo.date || "";
+
+
+    document
+        .getElementById("update-modal")
+        .classList.add("show");
+
+}
+
+
+/* =========================================================
+   CLOSE UPDATE MODAL
+========================================================= */
+
+function closeUpdateModal() {
+
+    document
+        .getElementById("update-modal")
+        .classList.remove("show");
+
+}
+
+
+/* =========================================================
+   UPDATE TODO
+========================================================= */
+
+async function saveTodo() {
+
+    const name =
+        document.getElementById(
+            "edit-todo-name"
+        ).value;
+
+
+    const button =
+        document.getElementById(
+            "save-update-button"
+        );
+
+
+    const data = {
+
+        description:
+            document.getElementById(
+                "edit-description"
+            ).value,
+
+        status:
+            document.getElementById(
+                "edit-status"
+            ).value,
+
+        priority:
+            document.getElementById(
+                "edit-priority"
+            ).value,
+
+        date:
+            document.getElementById(
+                "edit-date"
+            ).value
+
+    };
+
+
+    button.disabled = true;
+
+    button.textContent =
+        "Saving...";
+
+
+    try {
+
+        const response =
+            await fetch(
+
+                `/api/resource/ToDo/${encodeURIComponent(name)}`,
+
+                {
+                    method: "PUT",
+
+                    headers: {
+
+                        "Accept":
+                            "application/json",
+
+                        "Content-Type":
+                            "application/json",
+
+                        "X-Frappe-CSRF-Token":
+                            frappe.csrf_token
+
+                    },
+
+                    body:
+                        JSON.stringify(data)
+
+                }
+
+            );
+
+
+        const result =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+
+                result.exception ||
+
+                result.message ||
+
+                `HTTP ${response.status}`
+
+            );
+
+        }
+
+
+        closeUpdateModal();
+
+
+        await loadTodos();
+
+
+    } catch (err) {
+
+        console.error(err);
+
+
+        alert(
+            "Unable to update ToDo:\n\n" +
+            err.message
+        );
+
+
+    } finally {
+
+        button.disabled = false;
+
+        button.textContent =
+            "Save Changes";
+
+    }
+
+}
+
+
+/* =========================================================
+   OPEN DELETE MODAL
+========================================================= */
+
+function openDeleteModal(todo) {
+
+    if (
+        !todo.permissions ||
+        !todo.permissions.delete
+    ) {
+
+        return;
+
+    }
+
+
+    document.getElementById(
+        "delete-todo-name"
+    ).value =
+        todo.name || "";
+
+
+    document.getElementById(
+        "delete-todo-description"
+    ).textContent =
+        todo.description ||
+        todo.name ||
+        "";
+
+
+    document
+        .getElementById("delete-modal")
+        .classList.add("show");
+
+}
+
+
+/* =========================================================
+   CLOSE DELETE MODAL
+========================================================= */
+
+function closeDeleteModal() {
+
+    document
+        .getElementById("delete-modal")
+        .classList.remove("show");
+
+}
+
+
+/* =========================================================
+   DELETE TODO
+========================================================= */
+
+async function deleteTodo() {
+
+    const name =
+        document.getElementById(
+            "delete-todo-name"
+        ).value;
+
+
+    const button =
+        document.getElementById(
+            "confirm-delete-button"
+        );
+
+
+    button.disabled = true;
+
+    button.textContent =
+        "Deleting...";
+
+
+    try {
+
+        const response =
+            await fetch(
+
+                `/api/resource/ToDo/${encodeURIComponent(name)}`,
+
+                {
+                    method: "DELETE",
+
+                    headers: {
+
+                        "Accept":
+                            "application/json",
+
+                        "X-Frappe-CSRF-Token":
+                            frappe.csrf_token
+
+                    }
+
+                }
+
+            );
+
+
+        const result =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+
+                result.exception ||
+
+                result.message ||
+
+                `HTTP ${response.status}`
+
+            );
+
+        }
+
+
+        closeDeleteModal();
+
+
+        await loadTodos();
+
+
+    } catch (err) {
+
+        console.error(err);
+
+
+        alert(
+            "Unable to delete ToDo:\n\n" +
+            err.message
+        );
+
+
+    } finally {
+
+        button.disabled = false;
+
+        button.textContent =
+            "Delete";
+
+    }
+
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHtml(value) {
+
+    const div =
+        document.createElement("div");
+
+
+    div.textContent =
+        value == null
+            ? ""
+            : String(value);
+
+
+    return div.innerHTML;
+
+}
+
+
+/* =========================================================
+   CLOSE MODALS WHEN CLICKING OUTSIDE
+========================================================= */
+
+document.addEventListener(
+    "click",
+    function(event) {
+
+        const updateModal =
+            document.getElementById(
+                "update-modal"
+            );
+
+        const deleteModal =
+            document.getElementById(
+                "delete-modal"
+            );
+
+
+        if (event.target === updateModal) {
+
+            closeUpdateModal();
+
+        }
+
+
+        if (event.target === deleteModal) {
+
+            closeDeleteModal();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   INITIAL LOAD
+========================================================= */
+
+loadTodos();
+
+</script>
