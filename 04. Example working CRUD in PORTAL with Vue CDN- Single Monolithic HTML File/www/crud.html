@@ -1,0 +1,709 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<div id="app" class="container py-4">
+
+    <!--
+        ---------------------------------------------------------------
+        1. CONFIGURATION
+        ---------------------------------------------------------------
+
+        Change this section to reuse the same CRUD page for another
+        Frappe DocType.
+
+        Example:
+
+            doctype: "Customer"
+
+        and change the fields to:
+
+            customer_name, customer_group
+
+        The CRUD code below does not know what a Book, Customer, Task,
+        Employee, etc. is. It works with generic "objects".
+    -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">{{ config.objects_label }}</h1>
+            <p class="text-muted mb-0">
+                Generic Frappe CRUD + Vue 3 Composition API
+            </p>
+        </div>
+
+        <button class="btn btn-primary" @click="startCreate">
+            New {{ config.object_label }}
+        </button>
+    </div>
+
+    <!-- Server / success messages -->
+    <div
+        v-if="message.text"
+        class="alert"
+        :class="message.type === 'success' ? 'alert-success' : 'alert-danger'"
+    >
+        {{ message.text }}
+    </div>
+
+    <!--
+        ---------------------------------------------------------------
+        2. CREATE / UPDATE FORM
+        ---------------------------------------------------------------
+
+        The form is generated from config.fields.
+
+        That is the important part: there is no "book.author" hardcoded
+        into this template.
+    -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h3 class="card-title">
+                {{ editing ? 'Edit ' + config.object_label : 'Create ' + config.object_label }}
+            </h3>
+
+            <form @submit.prevent="saveObject">
+
+                <div
+                    v-for="field in editableFields"
+                    :key="field.fieldname"
+                    class="mb-3"
+                >
+                    <label
+                        class="form-label"
+                        :for="'field-' + field.fieldname"
+                    >
+                        {{ field.label }}
+                    </label>
+
+                    <input
+                        v-if="field.type !== 'textarea'"
+                        :id="'field-' + field.fieldname"
+                        v-model="object[field.fieldname]"
+                        :type="field.type || 'text'"
+                        class="form-control"
+                        :required="field.required"
+                        :readonly="editing && field.fieldname === 'name'"
+                    >
+
+                    <textarea
+                        v-else
+                        :id="'field-' + field.fieldname"
+                        v-model="object[field.fieldname]"
+                        class="form-control"
+                        :required="field.required"
+                    ></textarea>
+                </div>
+
+                <button
+                    type="submit"
+                    class="btn btn-success me-2"
+                    :disabled="saving"
+                >
+                    {{ saving ? 'Saving...' : (editing ? 'Update' : 'Create') }}
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    @click="resetForm"
+                    :disabled="saving"
+                >
+                    Cancel
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading state -->
+    <div v-if="loading" class="alert alert-info">
+        Loading {{ config.objects_label.toLowerCase() }}...
+    </div>
+
+    <!-- Empty state -->
+    <div v-else-if="objects_list.length === 0" class="alert alert-secondary">
+        No {{ config.objects_label.toLowerCase() }} found.
+    </div>
+
+    <!--
+        ---------------------------------------------------------------
+        3. OBJECT LIST
+        ---------------------------------------------------------------
+
+        Again, there is no Book-specific code here.
+    -->
+    <div v-else class="list-group">
+        <div
+            v-for="item in objects_list"
+            :key="item.name"
+            class="list-group-item"
+        >
+            <div class="d-flex justify-content-between align-items-center">
+
+                <div>
+                    <strong>
+                        {{ displayValue(item, config.title_field) }}
+                    </strong>
+
+                    <div
+                        v-for="field in listFields"
+                        :key="field.fieldname"
+                        class="text-muted"
+                    >
+                        <span v-if="field.fieldname !== config.title_field">
+                            {{ field.label }}:
+                            {{ displayValue(item, field.fieldname) }}
+                        </span>
+                    </div>
+                </div>
+
+                <div>
+                    <button
+                        class="btn btn-sm btn-outline-primary me-2"
+                        @click="editObject(item)"
+                        :disabled="saving"
+                    >
+                        Edit
+                    </button>
+
+                    <button
+                        class="btn btn-sm btn-outline-danger"
+                        @click="deleteObject(item.name)"
+                        :disabled="saving"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Vue 3 global CDN build. No npm or build step is required. -->
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+<script>
+const {
+    createApp,
+    ref,
+    computed,
+    onMounted
+} = Vue;
+
+
+/*
+ * =====================================================================
+ * GENERIC COMPOSITION FUNCTION
+ * =====================================================================
+ *
+ * This is the part to pay attention to.
+ *
+ * Instead of:
+ *
+ *     useBookCrud()
+ *
+ * we have:
+ *
+ *     useCrud(config)
+ *
+ * The same function can therefore work with any Frappe DocType.
+ */
+function useCrud(config) {
+
+    // A list of generic objects.
+    const objects_list = ref([]);
+
+    // The object currently being created or edited.
+    const object = ref({});
+
+    const loading = ref(false);
+    const saving = ref(false);
+    const editing = ref(false);
+
+    const message = ref({
+        text: "",
+        type: "success"
+    });
+
+    const csrfToken = frappe.csrf_token;
+
+
+    /*
+     * ---------------------------------------------------------------
+     * Helpers
+     * ---------------------------------------------------------------
+     */
+
+    function showMessage(text, type = "success") {
+        message.value = {
+            text,
+            type
+        };
+    }
+
+
+    function clearMessage() {
+        message.value = {
+            text: "",
+            type: "success"
+        };
+    }
+
+
+    function newObject() {
+        const values = {};
+
+        for (const field of config.fields) {
+            values[field.fieldname] = field.default ?? "";
+        }
+
+        object.value = values;
+    }
+
+
+    function resetForm() {
+        editing.value = false;
+        newObject();
+    }
+
+
+    /*
+     * Frappe returns errors in a few different formats depending on
+     * where the exception came from.
+     *
+     * Keep this helper simple for beginners while still showing a
+     * useful error message.
+     */
+    function getErrorMessage(result) {
+
+        if (result._server_messages) {
+            try {
+                const messages = JSON.parse(result._server_messages);
+
+                if (Array.isArray(messages) && messages.length) {
+                    return messages
+                        .map(message => {
+                            try {
+                                return JSON.parse(message).message;
+                            } catch {
+                                return message;
+                            }
+                        })
+                        .join("\n");
+                }
+            } catch {
+                // Fall through to the other error formats.
+            }
+        }
+
+        return (
+            result.exception ||
+            result.message ||
+            "The server returned an error."
+        );
+    }
+
+
+    /*
+     * ---------------------------------------------------------------
+     * Generic Frappe request helper
+     * ---------------------------------------------------------------
+     *
+     * All CRUD methods use this one function.
+     */
+    async function request(method, payload = {}) {
+
+        const response = await fetch(
+            `/api/method/${method}`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "X-Frappe-CSRF-Token": csrfToken
+                },
+
+                body: JSON.stringify(payload)
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || result.exc) {
+            throw new Error(getErrorMessage(result));
+        }
+
+        return result.message;
+    }
+
+
+    /*
+     * ---------------------------------------------------------------
+     * READ
+     * ---------------------------------------------------------------
+     */
+    async function loadObjects(showErrors = true) {
+
+        loading.value = true;
+
+        try {
+            objects_list.value = await request(
+                config.api.list,
+                {
+                    doctype: config.doctype,
+
+                    fields: config.fields.map(
+                        field => field.fieldname
+                    )
+                }
+            );
+        } catch (error) {
+
+            if (showErrors) {
+                showMessage(error.message, "error");
+            }
+
+        } finally {
+            loading.value = false;
+        }
+    }
+
+
+    /*
+     * ---------------------------------------------------------------
+     * CREATE FORM
+     * ---------------------------------------------------------------
+     */
+    function startCreate() {
+
+        clearMessage();
+
+        editing.value = false;
+
+        newObject();
+    }
+
+
+    /*
+     * ---------------------------------------------------------------
+     * UPDATE FORM
+     * ---------------------------------------------------------------
+     */
+    function editObject(item) {
+
+        clearMessage();
+
+        editing.value = true;
+
+        /*
+         * Make a copy instead of directly editing the item in the
+         * objects_list array.
+         */
+        object.value = {
+            ...item
+        };
+    }
+
+
+    /*
+     * ---------------------------------------------------------------
+     * CREATE + UPDATE
+     * ---------------------------------------------------------------
+     */
+    async function saveObject() {
+
+        saving.value = true;
+
+        clearMessage();
+
+        try {
+
+            /*
+             * Only send fields defined in the configuration.
+             */
+            const data = {};
+
+            for (const field of config.fields) {
+
+                if (field.read_only && field.fieldname !== "name") {
+                    continue;
+                }
+
+                data[field.fieldname] =
+                    object.value[field.fieldname];
+            }
+
+
+            if (editing.value) {
+
+                const name = object.value.name;
+
+                await request(
+                    config.api.update,
+                    {
+                        doctype: config.doctype,
+                        name: name,
+                        data: data
+                    }
+                );
+
+                showMessage(
+                    `${config.object_label} '${name}' updated successfully.`
+                );
+
+            } else {
+
+                const created = await request(
+                    config.api.create,
+                    {
+                        doctype: config.doctype,
+                        data: data
+                    }
+                );
+
+                showMessage(
+                    `${config.object_label} '${created.name}' created successfully.`
+                );
+            }
+
+
+            resetForm();
+
+            await loadObjects(false);
+
+        } catch (error) {
+
+            showMessage(
+                error.message,
+                "error"
+            );
+
+        } finally {
+
+            saving.value = false;
+        }
+    }
+
+
+    /*
+     * ---------------------------------------------------------------
+     * DELETE
+     * ---------------------------------------------------------------
+     */
+    async function deleteObject(name) {
+
+        if (!confirm(
+            `Delete '${name}'?`
+        )) {
+            return;
+        }
+
+        saving.value = true;
+
+        clearMessage();
+
+        try {
+
+            await request(
+                config.api.delete,
+                {
+                    doctype: config.doctype,
+                    name: name
+                }
+            );
+
+            showMessage(
+                `${config.object_label} '${name}' deleted successfully.`
+            );
+
+            /*
+             * If the deleted object was being edited, clear the form.
+             */
+            if (object.value.name === name) {
+                resetForm();
+            }
+
+            await loadObjects(false);
+
+        } catch (error) {
+
+            showMessage(
+                error.message,
+                "error"
+            );
+
+        } finally {
+
+            saving.value = false;
+        }
+    }
+
+
+    /*
+     * Everything returned here becomes available to the Vue template.
+     *
+     * Notice the generic names:
+     *
+     *     objects_list
+     *     object
+     *     loadObjects()
+     *     saveObject()
+     *     deleteObject()
+     *
+     * There is nothing about Books here.
+     */
+    return {
+        objects_list,
+        object,
+        loading,
+        saving,
+        editing,
+        message,
+
+        loadObjects,
+        startCreate,
+        editObject,
+        saveObject,
+        deleteObject,
+        resetForm
+    };
+}
+
+
+/*
+ * =====================================================================
+ * PAGE CONFIGURATION
+ * =====================================================================
+ *
+ * This is the only section that normally changes when you want to use
+ * the generic CRUD page for another DocType.
+ */
+const config = {
+
+    // Frappe DocType
+    doctype: "Book",
+
+    // Used only for labels in the UI.
+    object_label: "Book",
+    objects_label: "Books",
+
+    // Which field should be displayed as the main title.
+    title_field: "name",
+
+    /*
+     * Fields used by the list and form.
+     *
+     * Add/remove fields here when changing the DocType.
+     */
+    fields: [
+
+        {
+            fieldname: "name",
+            label: "Name",
+            type: "text",
+            required: true
+        },
+
+        {
+            fieldname: "author",
+            label: "Author",
+            type: "text",
+            required: true
+        }
+    ],
+
+    /*
+     * Frappe API methods.
+     *
+     * These methods are generic, so normally you do not need to
+     * change them.
+     */
+    api: {
+
+        list: "test_app.api.crud.list_objects",
+
+        get: "test_app.api.crud.get_object",
+
+        create: "test_app.api.crud.create_object",
+
+        update: "test_app.api.crud.update_object",
+
+        delete: "test_app.api.crud.delete_object"
+    }
+};
+
+
+/*
+ * Fields shown in the form.
+ *
+ * This example keeps the rule simple:
+ * every configured field is editable except fields explicitly marked
+ * read_only.
+ */
+const editableFields = computed(() =>
+    config.fields.filter(
+        field => !field.read_only
+    )
+);
+
+
+/*
+ * Fields shown underneath the object title in the list.
+ */
+const listFields = computed(() =>
+    config.fields
+);
+
+
+function displayValue(item, fieldname) {
+
+    const value = item[fieldname];
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+        return "—";
+    }
+
+    return value;
+}
+
+
+/*
+ * =====================================================================
+ * CREATE VUE APP
+ * =====================================================================
+ */
+const app = createApp({
+
+    setup() {
+
+        const crud = useCrud(config);
+
+        /*
+         * Load the objects as soon as the page is mounted.
+         */
+        onMounted(() => {
+            crud.loadObjects();
+        });
+
+        return {
+            config,
+
+            editableFields,
+            listFields,
+
+            displayValue,
+
+            ...crud
+        };
+    }
+});
+
+
+app.mount("#app");
+</script>
+
+{% endblock %}
