@@ -1,0 +1,7 @@
+<div
+    v-if="message.text"
+    class="alert"
+    :class="message.type === 'success' ? 'alert-success' : 'alert-danger'"
+>
+    {{ message.text }}
+</div>

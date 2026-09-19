@@ -1,0 +1,58 @@
+<div class="card mb-4">
+    <div class="card-body">
+        <h3 class="card-title">
+            {{ editing ? 'Edit ' + config.object_label : 'Create ' + config.object_label }}
+        </h3>
+
+        <form @submit.prevent="saveObject">
+
+            <div
+                v-for="field in editableFields"
+                :key="field.fieldname"
+                class="mb-3"
+            >
+                <label
+                    class="form-label"
+                    :for="'field-' + field.fieldname"
+                >
+                    {{ field.label }}
+                </label>
+
+                <input
+                    v-if="field.type !== 'textarea'"
+                    :id="'field-' + field.fieldname"
+                    v-model="object[field.fieldname]"
+                    :type="field.type || 'text'"
+                    class="form-control"
+                    :required="field.required"
+                    :readonly="editing && field.fieldname === 'name'"
+                >
+
+                <textarea
+                    v-else
+                    :id="'field-' + field.fieldname"
+                    v-model="object[field.fieldname]"
+                    class="form-control"
+                    :required="field.required"
+                ></textarea>
+            </div>
+
+            <button
+                type="submit"
+                class="btn btn-success me-2"
+                :disabled="saving"
+            >
+                {{ saving ? 'Saving...' : (editing ? 'Update' : 'Create') }}
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                @click="resetForm"
+                :disabled="saving"
+            >
+                Cancel
+            </button>
+        </form>
+    </div>
+</div>

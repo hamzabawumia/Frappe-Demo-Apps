@@ -1,0 +1,17 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<div id="app" class="container py-4">
+
+    {% include "templates/includes/vue_crud/header.html" %}
+    {% include "templates/includes/vue_crud/messages.html" %}
+    {% include "templates/includes/vue_crud/form.html" %}
+    {% include "templates/includes/vue_crud/list.html" %}
+
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="/assets/test_app/js/vue_crud/config.js"></script>
+<script src="/assets/test_app/js/vue_crud/crud.js"></script>
+<script src="/assets/test_app/js/vue_crud/app.js"></script>
+{% endblock %}

@@ -1,0 +1,52 @@
+<div v-if="loading" class="alert alert-info">
+    Loading {{ config.objects_label.toLowerCase() }}...
+</div>
+
+<div v-else-if="objects_list.length === 0" class="alert alert-secondary">
+    No {{ config.objects_label.toLowerCase() }} found.
+</div>
+
+<div v-else class="list-group">
+    <div
+        v-for="item in objects_list"
+        :key="item.name"
+        class="list-group-item"
+    >
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>
+                    {{ displayValue(item, config.title_field) }}
+                </strong>
+
+                <div
+                    v-for="field in listFields"
+                    :key="field.fieldname"
+                    class="text-muted"
+                >
+                    <span v-if="field.fieldname !== config.title_field">
+                        {{ field.label }}:
+                        {{ displayValue(item, field.fieldname) }}
+                    </span>
+                </div>
+            </div>
+
+            <div>
+                <button
+                    class="btn btn-sm btn-outline-primary me-2"
+                    @click="editObject(item)"
+                    :disabled="saving"
+                >
+                    Edit
+                </button>
+
+                <button
+                    class="btn btn-sm btn-outline-danger"
+                    @click="deleteObject(item.name)"
+                    :disabled="saving"
+                >
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
